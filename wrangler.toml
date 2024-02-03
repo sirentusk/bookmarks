@@ -1,0 +1,35 @@
+# File for Cloudflare Workers
+
+name = "Bookmarks"
+type = "javascript"
+
+# KV Namespace Binding
+kv_namespaces = [
+  { binding = "Bookmarks", id = "2a9951f6247d4868a5f862130f315761"}
+]
+
+# Define environment-specific variables for production
+[env.production]
+  name = "Bookmarks"
+  zone_id = "62d81413ea1d7a79d7db4955960ea09e"
+  route = "bookmarks.sirenwatcher.dev/*"
+
+# Define environment-specific variables for development
+[env.development]
+  name = "Bookmarks"
+  zone_id = "62d81413ea1d7a79d7db4955960ea09e"
+  route = "bookmarks.sirenwatcher.dev/*"
+
+# Environment variables for production
+[env.production.vars]
+  CLOUDFLARE_API_TOKEN = "5vbX3gJpKWMa7hoUgVuyQ_LEleKAboH8H3VbRQSR"
+  SUPABASE_URL = "https://gauilkzatkczmuakgmoi.supabase.co"
+  SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhdWlsa3phdGtjem11YWtnbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTk4Nzk3NTMsImV4cCI6MjAxNTQ1NTc1M30.qk73m21w2e7sQHT1avPE6DleXf46ZoQPKLJzaHbG8bA"
+  DB_PASSWORD = "mW9xU2Ea6WCIlyge"
+
+# Environment variables for development
+[env.development.vars]
+  CLOUDFLARE_API_TOKEN = "5vbX3gJpKWMa7hoUgVuyQ_LEleKAboH8H3VbRQSR"
+  SUPABASE_URL = "https://gauilkzatkczmuakgmoi.supabase.co"
+  SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhdWlsa3phdGtjem11YWtnbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTk4Nzk3NTMsImV4cCI6MjAxNTQ1NTc1M30.qk73m21w2e7sQHT1avPE6DleXf46ZoQPKLJzaHbG8bA"
+  DB_PASSWORD = "mW9xU2Ea6WCIlyge"
