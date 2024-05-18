@@ -1,77 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Siren Watcher's Bookmarks</title>
-    <script src="bookmarks.js"></script>
-    <link rel="stylesheet" type="text/css" href="bookmarks.css"> 
-</head>
-    
-<body>
-    <header>
-        <img src="bookmarks.webp">
-    </header>
-      
-    <form method="post" action="bookmarks.php" enctype="multipart/form-data">
-    <label for="url">URL:</label>
-    <input type="url" id="url" name="url" required><br><br>
+<?php
 
-    <label for="tags">Tags:</label>
-    <select id="tags" name="tags[]" multiple required>
-        <!-- Options for tags can be dynamically populated from the database -->
-        <option value="tag1">Tag 1</option>
-        <option value="tag2">Tag 2</option>
-        <!-- Add more options as needed -->
-    </select><br><br>
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-    <label for="authors">Authors:</label>
-    <select id="authors" name="authors[]" multiple required>
-        <!-- Options for authors can be dynamically populated from the database -->
-        <option value="author1">Author 1</option>
-        <option value="author2">Author 2</option>
-        <!-- Add more options as needed -->
-    </select><br><br>
+Supabase client setup (assuming you have already set this up)
+require_once 'path/to/supabase-php-sdk/autoload.php';
+$supabaseClient = new Supabase\SupabaseClient('SUPABASE_URL', 'SUPABASE_KEY');
 
-    <label for="release">Release:</label>
-    <input type="date" id="release" name="release" value="<?php echo date('Y-m-d'); ?>"><br><br>
+// Database connection details
+$supabaseUrl = getenv('SUPABASE_URL');
+$supabaseKey = getenv('SUPABASE_KEY');
+$password = getenv('DB_PASSWORD');
+$dbParams = parse_url($supabaseUrl);
 
-    <label for="created">Created:</label>
-    <input type="date" id="created" name="created" value="<?php echo date('Y-m-d'); ?>"><br><br>
+$host = 'db.tpogqybedqrbsgjoawxe.supabase.co';
+$dbname = 'postgres';
+$user = 'postgres';
+$port = '5432';
 
-    <label for="alternative_url">Alternative URL:</label>
-    <input type="url" id="alternative_url" name="alternative_url"><br><br>
+$dsn = "pgsql:host=$host;port=$port;dbname=$dbname;user=$user;password=$password;sslmode=require";
+$pdo = new PDO($dsn);
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    <label for="timestamp_quotes">Timestamp / Quotes:</label>
-    <input type="text" id="timestamp_quotes" name="timestamp_quotes"><br><br>
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $cabinType = $_POST['cabinType'];
+    $description = $_POST['description'];
+    $pricePerNight = $_POST['pricePerNight'];
+    $pricePerWeek = $_POST['pricePerWeek'];
+    $inclusions = $_POST['inclusions'];
 
-    <label for="hours">Hours:</label>
-    <input type="text" id="hours" name="hours"><br><br>
+    $inclusionsString = '{' . implode(', ', array_map(function($inclusion) {
+        return '"' . addslashes($inclusion) . '"';
+    }, $inclusions)) . '}';
 
-    <label for="finished">Finished:</label>
-    <input type="date" id="finished" name="finished" value="<?php echo date('Y-m-d'); ?>"><br><br>
+    $sql = "INSERT INTO \"Cabins\" (\"cabinType\", \"Description\", \"pricePerNight\", \"pricePerWeek\", \"Inclusions\") VALUES (?, ?, ?, ?, ?)";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$cabinType, $description, $pricePerNight, $pricePerWeek, $inclusionsString]);
 
-    <label for="episode">Episode:</label>
-    <input type="text" id="episode" name="episode"><br><br>
+    if (isset($_FILES['cabinImage']) && $_FILES['cabinImage']['error'] == UPLOAD_ERR_OK) {
+        $image = $_FILES['cabinImage'];
+        $imageSize = $_FILES['cabinImage']['size'];
+        $imageType = strtolower(pathinfo($image['name'], PATHINFO_EXTENSION));
 
-    <label for="channel">Channel:</label>
-    <select id="channel" name="channel[]" multiple>
-        <!-- Options for channels can be dynamically populated from the database -->
-        <option value="channel1">Channel 1</option>
-        <option value="channel2">Channel 2</option>
-        <!-- Add more options as needed -->
-    </select><br><br>
+        if ($imageSize > 5000000) {
+            echo "Error: Image size must be under 5MB.";
+        } else {
+            if (in_array($imageType, ['jpg', 'jpeg', 'png', 'tiff', 'webp', 'svg', 'heif', 'heic'])) {
+                $bucketName = 'cabins';
+                $folder = str_replace(' ', '_', strtolower($cabinType));
+                $newFileName = uniqid('cabin_', true) . '.' . $imageType;
+                $filePath = $folder . '/' . $newFileName;
 
-    <label for="comment_review">Comment / Review:</label>
-    <textarea id="comment_review" name="comment_review"></textarea><br><br>
+                // Supabase upload logic
+                $response = $supabaseClient->storage()->getBucket(cabins)->uploadFile($filePath, $image['tmp_name']);
 
-    <label for="archive1">Archive 1:</label>
-    <input type="url" id="archive1" name="archive1"><br><br>
+                if ($response->isSuccess()) {
+                    echo "Image uploaded successfully to Supabase.";
+                } else {
+                    echo "Failed to upload image to Supabase: " . $response->getMessage();
+                }
+            } else {
+                echo "Invalid file type, please upload a jpg, jpeg, png, tiff, webp, svg, heif, or heic file type.";
+            }
+        }
+    }
+}
 
-    <label for="archive2">Archive 2:</label>
-    <input type="url" id="archive2" name="archive2"><br><br>
-
-    <button type="submit">Submit</button>
-</form>
-
-</body>
-</html>
+?>
