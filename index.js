@@ -1,41 +1,72 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // Handling multi-selection for inclusions
-  const inclusionsSelect = document.querySelector('.inclusions');
-
-  inclusionsSelect.addEventListener('mousedown', (event) => {
-    event.preventDefault(); // Prevent default to enable custom behavior
-
-    const option = event.target;
-    if (option.tagName === 'OPTION') {
-      option.selected = !option.selected; // Toggle the selected state
-
-      // Dispatch a custom 'change' event to update the state
-      const changeEvent = new Event('change', { bubbles: true });
-      option.dispatchEvent(changeEvent);
+addEventListener('fetch', event => {
+    event.respondWith(handleRequest(event.request))
+  })
+  
+  async function handleRequest(request) {
+    // Retrieve environment variables from Wrangler configuration
+    const SUPABASE_URL = ENV.SUPABASE_URL;
+    const SUPABASE_KEY = ENV.SUPABASE_KEY;
+  
+    // Initialize Supabase client
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  
+    // Fetch data from Supabase tables
+    try {
+      const { data: bookmarks, error } = await supabase.from('MainTable').select('*');
+      if (error) {
+        throw error;
+      }
+  
+      // Construct HTML table rows dynamically
+      const tableRows = bookmarks.map(bookmark => {
+        return `
+          <tr>
+            <td><img src="${bookmark.Image}" alt="Bookmark Image"></td>
+            <td>${bookmark.Name}</td>
+            <td>${bookmark.Tags.join(', ')}</td>
+            <td>${bookmark.Authors.join(', ')}</td>
+            <td>${bookmark.Channels.join(', ')}</td>
+            <td><a href="${bookmark.URL}" target="_blank">${bookmark.URL}</a></td>
+            <td>${bookmark.Archive}</td>
+          </tr>
+        `;
+      });
+  
+      // Construct HTML table with headers and populated rows
+      const tableHtml = `
+        <table>
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Title</th>
+              <th>Tags</th>
+              <th>Authors</th>
+              <th>Channels</th>
+              <th>URL</th>
+              <th>Archive</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows.join('')}
+          </tbody>
+        </table>
+      `;
+  
+      // Respond with HTML content
+      return new Response(tableHtml, {
+        headers: {
+          'Content-Type': 'text/html',
+        },
+      });
+    } catch (err) {
+      console.error('Error fetching data from Supabase:', err.message);
+      // Respond with error message
+      return new Response('An error occurred while fetching data from Supabase.', {
+        status: 500,
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+      });
     }
-  });
-
-  // Log selected options in Inclusions
-  inclusionsSelect.addEventListener('change', () => {
-    const selectedOptions = Array.from(inclusionsSelect.selectedOptions).map(option => option.value);
-    console.log('Selected inclusions:', selectedOptions);
-  });
-
-  // Update custom file label with the selected file name
-  const fileInput = document.querySelector('.imagebutton .image');
-  const uploadButton = document.getElementById('uploadButton'); // Get the upload button
-
-  fileInput.addEventListener('change', () => {
-    // Change the button text to "Uploaded" and color to green if a file is selected
-    if (fileInput.files[0]) {
-      uploadButton.textContent = 'Uploaded';
-      uploadButton.style.backgroundColor = 'green';
-      uploadButton.style.color = 'white';
-    } else {
-      // Reset to original text and color if no file is selected
-      uploadButton.textContent = 'Choose File';
-      uploadButton.style.backgroundColor = '';
-      uploadButton.style.color = '';
-    }
-  });
-});
+  }
+  
